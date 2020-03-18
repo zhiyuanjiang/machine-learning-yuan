@@ -1,8 +1,0 @@
-# 忽略data文件夹
-data/
-
-# 忽略.idea/文件夹
-.idea/
-
-# 忽略test.py文件
-test.py
