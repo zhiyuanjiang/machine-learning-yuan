@@ -7,3 +7,6 @@ data/
 # 过滤test.py文件和fuck.py文件
 test.py
 fuck.py
+
+# 过滤点生成的txt文件
+*.txt
