@@ -10,3 +10,6 @@ fuck.py
 
 # 过滤点生成的txt文件
 *.txt
+
+# 过滤__pycache__
+__pycache__/
