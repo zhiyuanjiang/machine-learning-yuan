@@ -6,6 +6,8 @@ from SVM import platt_smo
 SMO算法实现
 """
 
+root = 'F:\\machine-learning\\data\\SVM\\'
+
 """
 loadDataSet:加载数据
 
@@ -119,8 +121,8 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
         print("iteration number: {}".format(iter))
     return b, alphas
 
-def smoP(dataMatIn, classLabels, C, toler, maxIter):
-    oS = platt_smo.optStruct(np.mat(dataMatIn), np.mat(classLabels).transpose(), C, toler)
+def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0)):
+    oS = platt_smo.optStruct(np.mat(dataMatIn), np.mat(classLabels).transpose(), C, toler, kTup)
     iter = 0
     entireSet, alphaPairsChanged = True, 0
     while (iter < maxIter) and ((alphaPairsChanged > 0) or entireSet):
@@ -164,28 +166,79 @@ def myplot(datas, labels):
     plt.scatter(list(x[0]), list(x[1]), c=labels)
     # plt.show()
 
+def testRbf(k1=1.3):
+    dataArr, labelArr = loadDataSet(root+'testSetRBF.txt')
+    b, alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1))
+    dataMat = np.mat(dataArr)
+    labelMat = np.mat(labelArr).transpose()
+    svInd = np.nonzero(alphas.A > 0)[0]
+    sVs = dataMat[svInd]
+    labelSV = labelMat[svInd]
+    print("there are {} Support Vectors".format(np.shape(sVs)[0]))
+    m, n = np.shape(dataMat)
+    errorCount = 0
+    for i in range(m):
+        kernelEval = platt_smo.kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        # 这里只使用了支持向量上的点，因为不在支持向量上的点alpha(i) = 0
+        predict = kernelEval.T * np.multiply(labelSV, alphas[svInd]) + b
+        if np.sign(predict) != np.sign(labelArr[i]):
+            errorCount += 1
+    print("the training error rate is: {}".format(float(errorCount)/m))
+
+    # test data
+    dataArr, labelArr = loadDataSet(root+'testSetRBF2.txt')
+    errorCount = 0
+    dataMat = np.mat(dataArr)
+    labelMat = np.mat(labelArr).transpose()
+    m, n = np.shape(dataMat)
+    for i in range(m):
+        kernelEval = platt_smo.kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernelEval.T * np.multiply(labelSV, alphas[svInd]) + b
+        if np.sign(predict) != np.sign(labelArr[i]):
+            errorCount += 1
+    print("the test error rate is: {}".format(float(errorCount)/m))
+
+    return alphas
+
+
 if __name__ == '__main__':
-    dataArr, labelArr = loadDataSet('f:\\machine-learning\\data\\SVM\\testSet.txt')
-    # print(labelArr)
-    b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
-    # print(b)
+
+    # dataArr, labelArr = loadDataSet(root+'testSet.txt')
+    # # print(labelArr)
+    # b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
+    # # print(b)
+    # myplot(dataArr, labelArr)
+    # data = []
+    # # 获取支持向量
+    # for i in range(100):
+    #     if alphas[i] > 0:
+    #         print(dataArr[i])
+    #         print(labelArr[i])
+    #         data.append(dataArr[i])
+    # x = list(zip(*data))
+    # plt.scatter(list(x[0]), list(x[1]), s=100, marker='x')
+    # plt.show()
+    #
+    # ws = calcWs(alphas, dataArr, labelArr)
+    # print(ws)
+    #
+    # # test
+    # t = np.array([[10, 0]])
+    # ans = np.dot(t, ws)+b
+    # print(ans)
+    dataArr, labelArr = loadDataSet(root + 'testSetRBF.txt')
     myplot(dataArr, labelArr)
+    # plt.show()
+    alphas = testRbf(1.5)
+    # 绘制支持向量上的点
     data = []
     # 获取支持向量
-    for i in range(100):
-        if alphas[i] > 0:
-            print(dataArr[i])
-            print(labelArr[i])
+    for i in range(alphas.shape[0]):
+        if alphas[i, 0] > 0:
+            # print(dataArr[i])
+            # print(labelArr[i])
             data.append(dataArr[i])
     x = list(zip(*data))
     plt.scatter(list(x[0]), list(x[1]), s=100, marker='x')
     plt.show()
-
-    ws = calcWs(alphas, dataArr, labelArr)
-    print(ws)
-
-    # test
-    t = np.array([[10, 0]])
-    ans = np.dot(t, ws)+b
-    print(ans)
 

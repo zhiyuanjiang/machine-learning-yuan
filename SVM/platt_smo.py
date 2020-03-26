@@ -2,7 +2,7 @@ import numpy as np
 from SVM import svm
 
 class optStruct:
-    def __init__(self, dataMatIn, classLabels, C, toler):
+    def __init__(self, dataMatIn, classLabels, C, toler, kTup):
         self.X = dataMatIn
         self.labelMat = classLabels
         self.C = C
@@ -13,8 +13,12 @@ class optStruct:
         # 保存误差Ek
         self.eCache = np.mat(np.zeros((self.m, 2)))
 
+        self.K = np.mat(np.zeros((self.m, self.m)))
+        for i in range(self.m):
+            self.K[:, i] = kernelTrans(self.X, self.X[i, :], kTup)
+
     def calcEk(self, k):
-        fxk = float(np.multiply(self.alphas, self.labelMat).T * (self.X*self.X[k, :].T)) + self.b
+        fxk = float(np.multiply(self.alphas, self.labelMat).T * self.K[:, k]) + self.b
         Ek = fxk - float(self.labelMat[k])
         return Ek
 
@@ -61,7 +65,7 @@ class optStruct:
             if L == H:
                 print("L==H")
                 return 0
-            eta = 2.0 * self.X[i, :] * self.X[j, :].T - self.X[i, :] * self.X[i, :].T - self.X[j,:] * self.X[j, :].T
+            eta = 2.0 * self.K[i, j] - self.K[i, i] - self.K[j, j]
             if eta >= 0:
                 print("eta >= 0")
                 return 0
@@ -73,8 +77,8 @@ class optStruct:
                 return 0
             self.alphas[i] += self.labelMat[j] * self.labelMat[i] * (alphaJold - self.alphas[j])
             self.updateEk(i)
-            b1 = self.b - Ei - self.labelMat[i] * (self.alphas[i] - alphaIold) * (self.X[i, :] * self.X[i, :].T) - self.labelMat[j] * (self.alphas[j] - alphaJold) * (self.X[i, :] * self.X[j, :].T)
-            b2 = self.b - Ej - self.labelMat[i] * (self.alphas[i] - alphaIold) * (self.X[i, :] * self.X[i, :].T) - self.labelMat[j] * (self.alphas[j] - alphaJold) * (self.X[i, :] * self.X[j, :].T)
+            b1 = self.b - Ei - self.labelMat[i] * (self.alphas[i] - alphaIold) * self.K[i, i] - self.labelMat[j] * (self.alphas[j] - alphaJold) * self.K[i, j]
+            b2 = self.b - Ej - self.labelMat[i] * (self.alphas[i] - alphaIold) * self.K[i, i] - self.labelMat[j] * (self.alphas[j] - alphaJold) * self.K[i, j]
             if 0 < self.alphas[i] and self.C > self.alphas[i]:
                 self.b = b1
             elif 0 < self.alphas[j] and self.C > self.alphas[j]:
@@ -85,3 +89,16 @@ class optStruct:
         else:
             return 0
 
+def kernelTrans(X, A, kTup):
+    m, n = np.shape(X)
+    K = np.mat(np.zeros((m, 1)))
+    if kTup[0] == 'lin':
+        K = X * A.T
+    elif kTup[0] == 'rbf':
+        for j in range(m):
+            deltaRow = X[j, :] - A
+            K[j] = deltaRow * deltaRow.T
+        K = np.exp(K / (-1.*kTup[1]**2))
+    else:
+        raise NameError('that kernel is not recognized')
+    return K
