@@ -99,16 +99,21 @@ def myplot(datMat, classLabels):
 def plotROC(predStrengths, classLabels):
     """
     绘制ROC曲线，计算AUC值
-    :param predStrengths: 样本预测值
-    :param classLabels: 标签
+    ROC曲线：先从右上角画起，假如所有的样本预测都为真，此时的假阳率和真阳率都为1，第一个点为（1,1）
+    对样本预测大小进行排序，每次取一个最小的样本预测为假，如果样本为假，那么此时假阳率-1/反例数；如果样本为真，此时真阳率-1/正例数
+    AUC：ROC曲线下的面积
+    :param predStrengths: ndarray shape=(n, ) 样本预测值
+    :param classLabels: ndarray shape=(n, ), 标签
     :return:
     """
     import matplotlib.pyplot as plt
     cur = (1., 1.)
     ySum = 0.
-    numPosClas = np.sum(np.array(classLabels) == 1.)
+    # classLabels=1 为正样本
+    numPosClas = np.sum(classLabels == 1.)
     yStep = 1./float(numPosClas)
     xStep = 1./float(len(classLabels)-numPosClas)
+    # 从小到大排序
     sortedIndicies = predStrengths.argsort()
     fig = plt.figure()
     fig.clf()
@@ -120,12 +125,44 @@ def plotROC(predStrengths, classLabels):
         else:
             delX = xStep
             delY = 0
+            # 计算所有的真阳率的和
             ySum += cur[1]
         ax.plot([cur[0], cur[0]-delX], [cur[1], cur[1]-delY], c='b')
         cur = (cur[0]-delX, cur[1]-delY)
     ax.plot([0, 1], [0, 1], 'b--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC curve for AdaBoost Horse Colic Detection System')
+    ax.axis([0, 1, 0, 1])
     plt.show()
     print("the Area Under the Curve is: ", ySum*xStep)
+
+def plotROC2(predStrengths, classLabels):
+    """
+    使用sklearn中的roc_curve, auc
+    :param predStrengths: ndarray shape=(n, ), 预测值
+    :param classLabels: ndarray shape=(n, ), 标签
+    :return:
+    """
+    from sklearn.metrics import roc_curve, auc  ###计算roc和auc
+    fpr, tpr, threshold = roc_curve(classLabels, predStrengths, pos_label=1)  ###计算真正率和假正率
+    roc_auc = auc(fpr, tpr)  ###计算auc的值
+
+    plt.figure()
+    lw = 2
+    plt.figure(figsize=(10, 10))
+    plt.plot(fpr, tpr, color='darkorange',
+             lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)  ###假正率为横坐标，真正率为纵坐标做曲线
+    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver operating characteristic example')
+    plt.legend(loc="lower right")
+    plt.show()
+
+    
 
 
 if __name__ == "__main__":
@@ -145,4 +182,5 @@ if __name__ == "__main__":
     # assert testLabelArr.shape == (m, 1)
     # errorRate = errArr[prediction10 != testLabelArr].sum()/m
     # print(errorRate)
-    plotROC(aggClassEst.T, labelArr)
+    plotROC(aggClassEst.T, np.array(labelArr))
+    # plotROC2(np.squeeze(aggClassEst.A), np.array(labelArr))
